@@ -1,0 +1,30 @@
+node{ 
+
+   properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([pollSCM('* * * * *')])])
+   
+   def mavenHome = tool name: 'maven3.9.1'  
+
+    stage('CheckoutCode'){
+       git branch: 'development', credentialsId: '966f2731-1a28-4c0d-ba7e-b95c97c94bee', url: 'https://github.com/GDM-static/citibank.git'
+    }
+    
+   stage('Build'){
+                 sh "${mavenHome}/bin/mvn clean package"
+                }
+
+   stage('sonarqube repo'){
+                         sh "${mavenHome}/bin/mvn clean sonar:sonar"
+                          }
+
+   stage('upload artifactories'){
+                               sh "${mavenHome}/bin/mvn clean deploy"
+                               }
+
+  stage('deploy the application in to tomcat'){
+              sshagent(['a4b68b4d-65b1-43fe-90be-371f1ff3c956']) {
+          sh "scp -o StrictHostKeyChecking=no terget/maven-web-application.war ec2-user@172.31.40.60:/opt/apache-tomcat-9.0.75/webapps/"
+}
+   
+}
+
+   }//node closing
